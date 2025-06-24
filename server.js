@@ -1021,7 +1021,7 @@ app.get('/test-twiml', (req, res) => {
     const userName = 'User'; // Placeholder for test
     if (questionIndex === 0) {
         // First time - greeting
-        response.say(`Hi ${userName}, I am from ${COMPANY_NAME}. This is an automated HR interview. Please answer the following questions.`);
+        response.say(`Hi ${userName}, I am from ${getCompanyName()}. This is an automated HR interview. Please answer the following questions.`);
         response.redirect({ method: 'GET' }, `/test-twiml?questionIndex=1`);
     } else if (questionIndex <= questions.length) {
         // Ask the current question
