@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>User Dashboard | Welcome</title>
+    <link rel="stylesheet" href="user-dashboard.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="dashboard-container">
+        <nav class="navbar">
+            <div class="nav-brand">
+                <i class="fas fa-shield-alt"></i>
+                <span>SecureLogin</span>
+            </div>
+            <div class="nav-user">
+                <span id="userName">User</span>
+                <span id="userCredits" class="credits-badge"></span>
+                <span class="contact-admin-info" style="margin-left: 1.5rem; font-size: 0.95rem; color: #5a67d8;">
+                    <i class="fas fa-headset"></i> gvkssceo@gvkss.com | +91 7441143143
+                </span>
+                <button id="directCallBtn" class="direct-call-btn">
+                    <i class="fas fa-phone"></i>
+                    Direct Call
+                </button>
+                <button id="logoutBtn" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Logout
+                </button>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            <div class="welcome-section" style="display: flex; align-items: center; justify-content: center; gap: 2rem;">
+                <div>
+                    <h1 id="welcomeMessage">Welcome, User!</h1>
+                    <p>Here's a quick overview of your account.</p>
+                </div>
+                <div id="companyBox" class="company-box">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="font-weight: 600; font-size: 1.1rem;">Company Name</span>
+                        <button id="editCompanyBtn" class="edit-btn" title="Edit Company Name" style="margin-left: 0.5rem;">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                    </div>
+                    <div id="companyNameDisplay" style="margin-top: 0.5rem; font-size: 1.05rem; font-weight: 500; color: #333;">Demo Company</div>
+                    <div id="companyNameEdit" style="display: none; margin-top: 0.5rem;">
+                        <input id="companyNameInput" type="text" value="Demo Company" style="font-size: 1.05rem; padding: 0.2rem 0.5rem;">
+                        <button id="saveCompanyBtn" class="save-btn" style="margin-left: 0.5rem;">Save</button>
+                        <button id="cancelCompanyBtn" class="cancel-btn" style="margin-left: 0.3rem;">Cancel</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="card-icon" style="background: #e9d8fd;"><i class="fas fa-calendar-plus"></i></div>
+                    <h3>Scheduling Call</h3>
+                    <p>Schedule a new call</p>
+                </div>
+                <div class="stat-card">
+                    <div class="card-icon" style="background: #d1f7e8;"><i class="fas fa-calendar-check"></i></div>
+                    <h3>Scheduled Calls</h3>
+                    <p>View your scheduled calls</p>
+                </div>
+                <div class="stat-card">
+                    <div class="card-icon" style="background: #fde2e4;"><i class="fas fa-file-alt"></i></div>
+                    <h3>Report</h3>
+                    <p>View your report</p>
+                </div>
+                <div class="stat-card">
+                    <div class="card-icon" style="background: #c7f3fe;"><i class="fas fa-question"></i></div>
+                    <h3>Manage Questions</h3>
+                    <p>Add, edit, or delete questions</p>
+                </div>
+            </div>
+
+            <!-- Info Box -->
+            <div class="info-box" id="dashboardInfoBox">
+                <span id="infoBoxMessage">Welcome! Use the options above to manage your account.</span>
+            </div>
+        </main>
+    </div>
+
+    <script src="user-dashboard.js?v=1.5"></script>
+</body>
+</html> 

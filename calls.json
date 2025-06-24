@@ -1,0 +1,30 @@
+{
+  "calls": [
+    {
+      "id": 1,
+      "userId": 1,
+      "name": "abhi",
+      "phone": "+91 7702315038",
+      "time": "2025-06-24T08:33:18.272Z",
+      "created_at": "2025-06-24T08:33:18.272Z",
+      "completed": true,
+      "completed_at": "2025-06-24T08:33:18.272Z",
+      "direct_call": true,
+      "twilio_call_sid": "CAaee00e1a3b012128e1700de757376418"
+    },
+    {
+      "id": 2,
+      "userId": 1,
+      "name": "abhi",
+      "phone": "+91 7702315038",
+      "time": "2025-06-24T14:08",
+      "status": "failed",
+      "created_at": "2025-06-24T08:37:53.203Z",
+      "started_at": "2025-06-24T08:38:00.559Z",
+      "twilio_call_sid": "CA842653b63267d8affc1e226c6086aa79",
+      "failed": true,
+      "failed_at": "2025-06-24T08:48:36.884Z",
+      "error": "Call timeout - no status update received"
+    }
+  ]
+}

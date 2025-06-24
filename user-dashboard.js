@@ -1,0 +1,1458 @@
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if user is authenticated
+    const token = localStorage.getItem('token');
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+    if (!token || !user.email) {
+        // Redirect to login if not authenticated
+        window.location.href = '/';
+        return;
+    }
+
+    // Update user information in the dashboard
+    document.getElementById('userName').textContent = user.name || 'User';
+    document.getElementById('welcomeMessage').textContent = `Welcome, ${user.name}!`;
+    const userCredits = document.getElementById('userCredits');
+    const dashboardCredits = document.getElementById('dashboardCredits');
+    function updateCreditsDisplay(credits) {
+        if (userCredits) userCredits.textContent = `Credits: ${credits ?? 0}`;
+        if (dashboardCredits) dashboardCredits.textContent = credits ?? 0;
+        if (infoBox) {
+            infoBox.innerHTML = `<div class='info-box-title'><i class='fas fa-user'></i> Welcome, ${user.name || user.email}!</div><div class='info-box-content'>You have <strong>${credits ?? 0} credits</strong>. Use the options above to manage your account.</div>`;
+        }
+    }
+
+    // Fetch latest user profile from backend and update credits
+    async function refreshUserProfile() {
+        try {
+            const response = await fetch('/api/profile', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                if (data && data.user) {
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    updateCreditsDisplay(data.user.credits);
+                }
+            }
+        } catch (err) {
+            // Ignore network errors for now
+        }
+    }
+    refreshUserProfile();
+
+    // Logout functionality
+    document.getElementById('logoutBtn').addEventListener('click', function() {
+        // Clear local storage
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        
+        // Redirect to login page
+        window.location.href = '/';
+    });
+
+    // Add click handlers for stat cards
+    const statCards = document.querySelectorAll('.stat-card');
+    statCards.forEach(card => {
+        card.addEventListener('click', function() {
+            const title = this.querySelector('h3').textContent;
+            showNotification(`${title} feature coming soon!`, 'info');
+        });
+    });
+
+    // Verify token with backend
+    verifyToken(token);
+
+    // Notification system
+    function showNotification(message, type = 'info') {
+        // Remove existing notifications
+        const existingNotification = document.querySelector('.notification');
+        if (existingNotification) {
+            existingNotification.remove();
+        }
+
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.innerHTML = `
+            <div class="notification-content">
+                <i class="fas ${getNotificationIcon(type)}"></i>
+                <span>${message}</span>
+            </div>
+        `;
+
+        // Add styles
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: ${getNotificationColor(type)};
+            color: white;
+            padding: 16px 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            max-width: 300px;
+            font-size: 14px;
+            font-weight: 500;
+        `;
+
+        // Add to page
+        document.body.appendChild(notification);
+
+        // Animate in
+        setTimeout(() => {
+            notification.style.transform = 'translateX(0)';
+        }, 100);
+
+        // Remove after 4 seconds
+        setTimeout(() => {
+            notification.style.transform = 'translateX(400px)';
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, 300);
+        }, 4000);
+    }
+
+    function getNotificationIcon(type) {
+        switch (type) {
+            case 'success': return 'fa-check-circle';
+            case 'error': return 'fa-exclamation-circle';
+            case 'warning': return 'fa-exclamation-triangle';
+            default: return 'fa-info-circle';
+        }
+    }
+
+    function getNotificationColor(type) {
+        switch (type) {
+            case 'success': return '#10b981';
+            case 'error': return '#ef4444';
+            case 'warning': return '#f59e0b';
+            default: return '#667eea';
+        }
+    }
+
+    // Verify token with backend
+    async function verifyToken(token) {
+        try {
+            const response = await fetch(`${window.location.origin}/api/profile`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            if (!response.ok) {
+                // Token is invalid, redirect to login
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                window.location.href = '/';
+                return;
+            }
+
+            const data = await response.json();
+            if (data.success) {
+                // Token is valid, update user info if needed
+                console.log('Token verified successfully');
+            }
+        } catch (error) {
+            console.error('Token verification error:', error);
+            // On network error, we'll keep the user logged in
+            // but could implement a retry mechanism
+        }
+    }
+
+    // Add keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        // Ctrl/Cmd + L for logout
+        if ((e.ctrlKey || e.metaKey) && e.key === 'l') {
+            e.preventDefault();
+            document.getElementById('logoutBtn').click();
+        }
+        
+        // Escape key to close any open modals (if implemented)
+        if (e.key === 'Escape') {
+            // Close any open modals or dropdowns
+        }
+    });
+
+    // Add hover effects for stat cards
+    statCards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-4px) scale(1.02)';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0) scale(1)';
+        });
+    });
+
+    // Auto-refresh token (optional - implement if needed)
+    // setInterval(() => {
+    //     verifyToken(token);
+    // }, 5 * 60 * 1000); // Check every 5 minutes
+
+    // Show welcome message
+    setTimeout(() => {
+        showNotification(`Welcome back, ${user.name || user.email}!`, 'success');
+    }, 1000);
+
+    // Dynamic Info Box logic
+    const infoBox = document.getElementById('infoBoxMessage');
+    if (statCards.length && infoBox) {
+        if (statCards[0]) statCards[0].addEventListener('click', () => {
+            // Scheduling Call logic
+            const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+            const currentCredits = currentUser.credits || 0;
+            const canSchedule = currentCredits >= 1;
+            
+            infoBox.innerHTML = `
+                <div class='info-box-title'><i class='fas fa-calendar-plus'></i> Scheduling Call</div>
+                <div class='info-box-content'>
+                    <div style="margin-bottom: 1.5rem; padding: 1rem; background: ${canSchedule ? '#f0f9ff' : '#fef2f2'}; border: 1px solid ${canSchedule ? '#bae6fd' : '#fecaca'}; border-radius: 8px;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                            <i class="fas fa-coins" style="color: ${canSchedule ? '#059669' : '#dc2626'};"></i>
+                            <span style="font-weight: 600; color: ${canSchedule ? '#065f46' : '#991b1b'};">
+                                Your Credits: ${currentCredits}
+                            </span>
+                        </div>
+                        <div style="font-size: 0.9rem; color: ${canSchedule ? '#047857' : '#b91c1c'};">
+                            <i class="fas fa-info-circle" style="margin-right: 0.5rem;"></i>
+                            ${canSchedule ? 'Cost: 1 credit per call' : 'You need at least 1 credit to schedule a call'}
+                        </div>
+                    </div>
+                    <form id="scheduleCallForm" class="schedule-call-form">
+                        <div style="margin-bottom: 1rem;">
+                            <label for="callName">Name</label><br>
+                            <input type="text" id="callName" name="callName" required style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid #e5e7eb; margin-top: 0.25rem;">
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label for="callPhone">Phone Number</label><br>
+                            <input type="tel" id="callPhone" name="callPhone" required pattern="[0-9\\-\\+\\s\\(\\)]{7,}" style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid #e5e7eb; margin-top: 0.25rem;">
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label for="callTime">Time</label><br>
+                            <input type="datetime-local" id="callTime" name="callTime" required style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid #e5e7eb; margin-top: 0.25rem;">
+                        </div>
+                        <button type="submit" style="background: ${canSchedule ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : '#9ca3af'}; color: white; border: none; padding: 0.75rem 2rem; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: ${canSchedule ? 'pointer' : 'not-allowed'}; opacity: ${canSchedule ? '1' : '0.6'};" ${!canSchedule ? 'disabled' : ''}>
+                            ${canSchedule ? 'Schedule Call (1 credit)' : 'Insufficient Credits'}
+                        </button>
+                    </form>
+                </div>
+            `;
+            // Add form submit handler
+            const scheduleForm = document.getElementById('scheduleCallForm');
+            if (scheduleForm) {
+                scheduleForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    const name = document.getElementById('callName').value.trim();
+                    const phone = document.getElementById('callPhone').value.trim();
+                    const time = document.getElementById('callTime').value;
+                    if (!name || !phone || !time) {
+                        showNotification('Please fill in all fields', 'error');
+                        return;
+                    }
+                    
+                    // Check if user has enough credits before submitting
+                    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+                    const currentCredits = currentUser.credits || 0;
+                    if (currentCredits < 1) {
+                        showNotification('Insufficient credits. You need at least 1 credit to schedule a call.', 'error');
+                        return;
+                    }
+                    
+                    try {
+                        const response = await fetch('/api/schedule-call', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({
+                                name,
+                                phone,
+                                time: time,
+                                companyName: document.getElementById('companyNameDisplay').textContent
+                            })
+                        });
+                        const data = await response.json();
+                        if (response.ok && data.success) {
+                            showNotification(`Call scheduled successfully! 1 credit deducted. Remaining credits: ${data.remainingCredits}`, 'success');
+                            scheduleForm.reset();
+                            
+                            // Update the user's credit display
+                            if (data.remainingCredits !== undefined) {
+                                updateCreditsDisplay(data.remainingCredits);
+                                
+                                // Update the stored user data
+                                const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+                                currentUser.credits = data.remainingCredits;
+                                localStorage.setItem('user', JSON.stringify(currentUser));
+                            }
+                        } else {
+                            showNotification(data.message || 'Failed to schedule call', 'error');
+                        }
+                    } catch (err) {
+                        showNotification('Network error. Please try again.', 'error');
+                    }
+                });
+            }
+        });
+        if (statCards[1]) statCards[1].addEventListener('click', async () => {
+            // Scheduled Calls logic
+            infoBox.innerHTML = `<div class='info-box-title'><i class='fas fa-calendar-check'></i> Scheduled Calls</div><div class='info-box-content'>Loading your scheduled calls...</div>`;
+            try {
+                const response = await fetch('/api/scheduled-calls', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if (response.ok && data.success) {
+                    if (data.calls.length === 0) {
+                        infoBox.innerHTML = `<div class='info-box-title'><i class='fas fa-calendar-check'></i> Scheduled Calls</div><div class='info-box-content'>You have no scheduled calls.</div>`;
+                        return;
+                    }
+                        const callsList = data.calls.map(call => {
+                            // Format the time for display (IST)
+                        const callTime = new Date(call.time || call.scheduledTime);
+                            const formattedTime = callTime.toLocaleString('en-IN', { 
+                                timeZone: 'Asia/Kolkata',
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            });
+                            const status = call.completed ? 'Completed' : call.failed ? 'Failed' : 'Pending';
+                            const statusClass = call.completed ? 'completed' : call.failed ? 'failed' : 'pending';
+                        const statusColor = call.completed ? '#10b981' : call.failed ? '#ef4444' : '#f59e0b';
+                        const canEdit = !call.completed && !call.failed;
+                        return `<li style="margin-bottom: 1rem; padding: 1rem; border: 1px solid #e5e7eb; border-radius: 12px; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                                <div style="flex: 1; min-width: 200px;">
+                                    <div style="font-weight: 600; color: #374151; margin-bottom: 0.25rem;">
+                                        <i class="fas fa-user" style="color: #667eea; margin-right: 0.5rem;"></i>${call.name}
+                                    </div>
+                                    <div style="color: #6b7280; font-size: 0.9rem;">
+                                        <i class="fas fa-phone" style="margin-right: 0.5rem;"></i>${call.phone}
+                                    </div>
+                                    <div style="color: #6b7280; font-size: 0.9rem;">
+                                        <i class="fas fa-clock" style="margin-right: 0.5rem;"></i>${formattedTime}
+                                    </div>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                                    <span style="background: ${statusColor}; color: white; padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                                        ${status}
+                                    </span>
+                                    <div style="display: flex; gap: 0.5rem;">
+                                        ${canEdit ? `
+                                            <button onclick="editUserCall('${call.id}')" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; border: none; padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.8rem; cursor: pointer; font-weight: 600; transition: all 0.3s ease;">
+                                                <i class='fas fa-edit'></i> Edit
+                                            </button>
+                                            <button onclick="cancelUserCall('${call.id}')" style="background: linear-gradient(135deg, #ffa726 0%, #ff9800 100%); color: white; border: none; padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.8rem; cursor: pointer; font-weight: 600; transition: all 0.3s ease;">
+                                                <i class='fas fa-times'></i> Cancel
+                                            </button>
+                                        ` : ''}
+                                        <button onclick="deleteUserCall('${call.id}')" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%); color: white; border: none; padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.8rem; cursor: pointer; font-weight: 600; transition: all 0.3s ease;">
+                                            <i class='fas fa-trash'></i> Delete
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            </li>`;
+                        }).join('');
+                        infoBox.innerHTML = `<div class='info-box-title'><i class='fas fa-calendar-check'></i> Scheduled Calls</div><div class='info-box-content'><ul style="list-style: none; padding: 0;">${callsList}</ul></div>`;
+                } else {
+                    infoBox.innerHTML = `<div class='info-box-title'><i class='fas fa-calendar-check'></i> Scheduled Calls</div><div class='info-box-content'>Failed to load scheduled calls.</div>`;
+                }
+            } catch (err) {
+                infoBox.innerHTML = `<div class='info-box-title'><i class='fas fa-calendar-check'></i> Scheduled Calls</div><div class='info-box-content'>Network error. Please try again.</div>`;
+            }
+        });
+        if (statCards[2]) statCards[2].addEventListener('click', async () => {
+            // Report logic - Show user's actual reports
+            infoBox.innerHTML = `<div class='info-box-title'><i class='fas fa-file-alt'></i> Report</div><div class='info-box-content'>Loading your reports...</div>`;
+            
+            try {
+                // Fetch user's responses and calls data
+                const [responsesResponse, callsResponse] = await Promise.all([
+                    fetch('/api/user-responses', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    }),
+                    fetch('/api/calls', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    })
+                ]);
+
+                const responsesData = await responsesResponse.json();
+                const callsData = await callsResponse.json();
+
+                console.log('📊 Raw responses data from API:', responsesData);
+                console.log('📞 Raw calls data from API:', callsData);
+
+                if (responsesResponse.ok && callsResponse.ok) {
+                    const responses = responsesData.responses || [];
+                    const calls = callsData.calls || [];
+                    
+                    console.log('🔍 Processed responses array:', responses);
+                    console.log('📞 Processed calls array:', calls);
+                    
+                    // Debug each response object
+                    responses.forEach((response, index) => {
+                        console.log(`🔍 Response ${index}:`, {
+                            id: response.id,
+                            callSid: response.callSid,
+                            userId: response.userId,
+                            hasId: 'id' in response,
+                            idType: typeof response.id
+                        });
+                    });
+                    
+                    renderUserReports(responses, calls);
+                } else {
+                    infoBox.innerHTML = `<div class='info-box-title'><i class='fas fa-file-alt'></i> Report</div><div class='info-box-content'>Failed to load reports. Please try again.</div>`;
+                }
+            } catch (err) {
+                console.error('Error loading reports:', err);
+                infoBox.innerHTML = `<div class='info-box-title'><i class='fas fa-file-alt'></i> Report</div><div class='info-box-content'>Network error. Please try again.</div>`;
+            }
+        });
+        if (statCards[3]) statCards[3].addEventListener('click', async () => {
+            // Manage Questions logic
+            infoBox.innerHTML = `<div class='info-box-title'><i class='fas fa-question'></i> Manage Questions</div><div class='info-box-content'>Loading questions...</div>`;
+            try {
+                const response = await fetch('/api/questions', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if (response.ok && data.success) {
+                    renderQuestionsBox(data.questions);
+                } else {
+                    infoBox.innerHTML = `<div class='info-box-title'><i class='fas fa-question'></i> Manage Questions</div><div class='info-box-content'>Failed to load questions.</div>`;
+                }
+            } catch (err) {
+                infoBox.innerHTML = `<div class='info-box-title'><i class='fas fa-question'></i> Manage Questions</div><div class='info-box-content'>Network error. Please try again.</div>`;
+            }
+        });
+    }
+
+    // Helper to render user reports with responses
+    function renderUserReports(responses, calls) {
+        const userId = getCurrentUserId();
+        console.log('🔍 Current user ID:', userId);
+        console.log('📊 All responses:', responses);
+        console.log('📞 All calls:', calls);
+        
+        const userResponses = responses.filter(r => {
+            const call = calls.find(c => c.twilio_call_sid === r.callSid);
+            // Ensure proper type comparison - convert both to numbers
+            const callUserId = parseInt(call?.userId);
+            const currentUserId = parseInt(userId);
+            const isUserResponse = call && callUserId === currentUserId;
+            console.log(`🔍 Response ${r.id}: callSid=${r.callSid}, call.userId=${call?.userId} (${typeof call?.userId}), currentUserId=${userId} (${typeof userId}), isUserResponse=${isUserResponse}`);
+            return isUserResponse;
+        });
+        
+        console.log('👤 Filtered user responses:', userResponses);
+        
+        const userCalls = calls.filter(c => {
+            // Ensure proper type comparison - convert both to numbers
+            const callUserId = parseInt(c.userId);
+            const currentUserId = parseInt(userId);
+            return callUserId === currentUserId;
+        });
+        console.log('📞 User calls:', userCalls);
+        
+        if (userResponses.length === 0 && userCalls.length === 0) {
+            infoBox.innerHTML = `<div class='info-box-title'><i class='fas fa-file-alt'></i> Report</div><div class='info-box-content'>
+                <div style='text-align: center; padding: 2rem; color: #6b7280;'>
+                    <i class='fas fa-chart-line' style='font-size: 3rem; margin-bottom: 1rem; display: block;'></i>
+                    <h3 style='margin: 0 0 0.5rem 0;'>No Reports Available</h3>
+                    <p style='margin: 0;'>You haven't made any calls yet. Schedule a call to see your reports here.</p>
+                </div>
+            </div>`;
+            return;
+        }
+        
+        // Calculate statistics
+        const totalCalls = userCalls.length;
+        const completedCalls = userCalls.filter(c => c.status === 'completed').length;
+        const pendingCalls = userCalls.filter(c => c.status === 'pending' || c.status === 'scheduled').length;
+        const totalResponses = userResponses.length;
+        const avgConfidence = userResponses.length > 0 
+            ? (userResponses.reduce((sum, r) => sum + (r.confidences?.reduce((a, b) => a + b, 0) / (r.confidences?.length || 1)), 0) / userResponses.length * 100).toFixed(1)
+            : 0;
+        
+        let html = `
+            <div style='margin-bottom: 2rem;'>
+                <h3 style='margin: 0 0 1rem 0; color: #1f2937;'>📊 Your Call Statistics</h3>
+                <div style='display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;'>
+                    <div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1rem; border-radius: 8px; text-align: center;'>
+                        <div style='font-size: 1.5rem; font-weight: bold;'>${totalCalls}</div>
+                        <div style='font-size: 0.9rem; opacity: 0.9;'>Total Calls</div>
+                    </div>
+                    <div style='background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 1rem; border-radius: 8px; text-align: center;'>
+                        <div style='font-size: 1.5rem; font-weight: bold;'>${completedCalls}</div>
+                        <div style='font-size: 0.9rem; opacity: 0.9;'>Completed</div>
+                    </div>
+                    <div style='background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 1rem; border-radius: 8px; text-align: center;'>
+                        <div style='font-size: 1.5rem; font-weight: bold;'>${pendingCalls}</div>
+                        <div style='font-size: 0.9rem; opacity: 0.9;'>Pending</div>
+                    </div>
+                    <div style='background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; padding: 1rem; border-radius: 8px; text-align: center;'>
+                        <div style='font-size: 1.5rem; font-weight: bold;'>${totalResponses}</div>
+                        <div style='font-size: 0.9rem; opacity: 0.9;'>Responses</div>
+                    </div>
+                </div>
+                <div style='background: #f8fafc; padding: 1rem; border-radius: 8px; border-left: 4px solid #667eea;'>
+                    <div style='font-weight: 600; color: #374151; margin-bottom: 0.5rem;'>🎯 Average Confidence Score</div>
+                    <div style='font-size: 1.2rem; color: #667eea; font-weight: bold;'>${avgConfidence}%</div>
+                </div>
+            </div>
+        `;
+        
+        // Recent responses section
+        if (userResponses.length > 0) {
+            html += `
+                <div style='margin-bottom: 2rem;'>
+                    <h3 style='margin: 0 0 1rem 0; color: #1f2937;'>📝 Recent Call Responses</h3>
+                    <div style='max-height: 300px; overflow-y: auto;'>
+            `;
+            
+            userResponses.slice(0, 5).forEach((response, index) => {
+                console.log('🔍 Processing response:', response);
+                console.log('📋 Response ID:', response.id);
+                console.log('📞 Call SID:', response.callSid);
+                console.log('👤 User ID:', response.userId);
+                console.log('🔍 Response object keys:', Object.keys(response));
+                console.log('🔍 Response object values:', Object.values(response));
+                
+                // Use the original response ID instead of generating a new one
+                const responseId = response.id;
+                console.log('🆔 Using Response ID:', responseId);
+                console.log('🆔 Response ID type:', typeof responseId);
+                console.log('🆔 Response ID === undefined:', responseId === undefined);
+                console.log('🆔 Response ID === null:', responseId === null);
+                
+                if (!responseId) {
+                    console.error('❌ Response ID is missing! Response object:', response);
+                }
+                
+                const call = calls.find(c => c.twilio_call_sid === response.callSid);
+                const responseDate = new Date(response.timestamp).toLocaleDateString('en-IN', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                
+                const avgConfidence = response.confidences && response.confidences.length > 0
+                    ? (response.confidences.reduce((a, b) => a + b, 0) / response.confidences.length * 100).toFixed(1)
+                    : 'N/A';
+                
+                const confidenceColor = avgConfidence !== 'N/A' 
+                    ? (avgConfidence >= 80 ? '#10b981' : avgConfidence >= 60 ? '#f59e0b' : '#ef4444')
+                    : '#6b7280';
+                
+                html += `
+                    <div style="
+                        background: white;
+                        border: 1px solid #e5e7eb;
+                        border-radius: 8px;
+                        padding: 1rem;
+                        margin-bottom: 1rem;
+                        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                    ">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <div style="font-weight: 600; color: #1f2937;">
+                                ${call ? call.name : 'Unknown Contact'}
+                            </div>
+                            <div style="font-size: 0.875rem; color: #6b7280;">
+                                ${responseDate}
+                            </div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 1rem; align-items: center; font-size: 0.875rem;">
+                            <div>
+                                <strong>Questions:</strong> ${response.answers?.length || 0}
+                            </div>
+                            <div>
+                                <strong>Confidence:</strong> 
+                                <span style="color: ${confidenceColor}; font-weight: 600;">
+                                    ${avgConfidence}${avgConfidence !== 'N/A' ? '%' : ''}
+                                </span>
+                            </div>
+                            <div>
+                                <strong>Status:</strong> 
+                                <span style="color: #10b981; font-weight: 600;">Completed</span>
+                            </div>
+                            <button class="view-response-btn" 
+                                data-response='${JSON.stringify(response)}'
+                                style="
+                                    background: #667eea;
+                                    color: white;
+                                    border: none;
+                                    padding: 0.5rem 1rem;
+                                    border-radius: 6px;
+                                    font-size: 0.875rem;
+                                    font-weight: 600;
+                                    cursor: pointer;
+                                ">
+                                View Details
+                            </button>
+                            <button class="download-response-btn"
+                                data-response='${JSON.stringify(response)}'
+                                data-call='${JSON.stringify(call)}'
+                                style="
+                                    background: #10b981;
+                                    color: white;
+                                    border: none;
+                                    padding: 0.5rem 1rem;
+                                    border-radius: 6px;
+                                    font-size: 0.875rem;
+                                    font-weight: 600;
+                                    cursor: pointer;
+                                    margin-left: 0.5rem;
+                                ">
+                                Download Response
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += `
+                    </div>
+                    ${userResponses.length > 5 ? `<div style='text-align: center; margin-top: 1rem;'><button onclick="loadAllResponses()" style='background: #667eea; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer;'>View All Responses</button></div>` : ''}
+                </div>
+            `;
+        }
+        
+        // Recent calls section
+        if (userCalls.length > 0) {
+            html += `
+                <div>
+                    <h3 style='margin: 0 0 1rem 0; color: #1f2937;'>📞 Recent Calls</h3>
+                    <div style='max-height: 200px; overflow-y: auto;'>
+            `;
+            
+            userCalls.slice(0, 3).forEach((call, index) => {
+                const callDate = new Date(call.scheduledTime).toLocaleDateString('en-IN', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                
+                const statusColor = call.status === 'completed' ? '#10b981' : call.status === 'failed' ? '#ef4444' : '#f59e0b';
+                
+                html += `
+                    <div style='background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem; margin-bottom: 0.8rem;'>
+                        <div style='display: flex; justify-content: space-between; align-items: center;'>
+                            <div>
+                                <div style='font-weight: 600; color: #374151;'>${call.name}</div>
+                                <div style='color: #6b7280; font-size: 0.9rem;'>${call.phone}</div>
+                            </div>
+                            <div style='text-align: right;'>
+                                <span style='background: ${statusColor}; color: white; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600; text-transform: capitalize;'>${call.status}</span>
+                                <div style='color: #6b7280; font-size: 0.9rem; margin-top: 0.2rem;'>${callDate}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += `
+                    </div>
+                </div>
+            `;
+        }
+        
+        infoBox.innerHTML = `<div class='info-box-title'><i class='fas fa-file-alt'></i> Report</div><div class='info-box-content'>${html}</div>`;
+        
+        // Add event listeners for view buttons
+        document.querySelectorAll('.view-response-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                console.log('🔘 View button clicked');
+                console.log('🔍 Button dataset:', e.currentTarget.dataset);
+                console.log('📋 Raw response data:', e.currentTarget.dataset.response);
+                
+                try {
+                    const responseData = JSON.parse(e.currentTarget.dataset.response);
+                    console.log('📊 Parsed response data:', responseData);
+                    console.log('📋 Response ID:', responseData.id);
+                    console.log('📋 Response ID type:', typeof responseData.id);
+                    
+                    if (!responseData.id) {
+                        console.error('❌ Response ID is missing or undefined');
+                        showNotification('Response ID is missing. Please try again.', 'error');
+                        return;
+                    }
+                    
+                    viewResponseDetails(responseData.id);
+                } catch (error) {
+                    console.error('❌ Error parsing response data:', error);
+                    showNotification('Error loading response data. Please try again.', 'error');
+                }
+            });
+        });
+        // Add event listeners for download buttons
+        document.querySelectorAll('.download-response-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                try {
+                    const responseData = JSON.parse(e.currentTarget.dataset.response);
+                    const callData = JSON.parse(e.currentTarget.dataset.call);
+                    const name = callData && callData.name ? callData.name : 'response';
+                    const time = responseData.timestamp ? new Date(responseData.timestamp).toLocaleString('en-IN', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+                    const questions = responseData.questions || [];
+                    const answers = responseData.answers || [];
+                    const companyName = callData && callData.companyName ? callData.companyName : 'Demo Company';
+                    downloadResponse(name, time, questions, answers);
+                } catch (error) {
+                    showNotification('Error preparing download. Please try again.', 'error');
+                }
+            });
+        });
+    }
+
+    // Helper to get current user ID from token
+    function getCurrentUserId() {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) return null;
+            
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            return payload.userId;
+        } catch (err) {
+            console.error('Error parsing token:', err);
+            return null;
+        }
+    }
+
+    // Function to view response details with proper modal implementation
+    async function viewResponseDetails(responseId) {
+        try {
+            console.log('🔍 Fetching response details for:', responseId);
+            console.log('📋 Response ID type:', typeof responseId);
+            
+            // Validate responseId
+            if (!responseId || responseId === 'undefined' || responseId === 'null') {
+                console.error('❌ Invalid response ID:', responseId);
+                showNotification('Invalid response ID. Please try again.', 'error');
+                return;
+            }
+            
+            // Fetch the specific response details
+            const response = await fetch(`/api/responses/${responseId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to fetch response details');
+            }
+            
+            const data = await response.json();
+            console.log('📊 Response data:', data);
+            
+            if (!data.success || !data.response) {
+                throw new Error('Invalid response data');
+            }
+            
+            const responseData = data.response;
+            
+            // Load questions to match with answers
+            const questionsResponse = await fetch('/api/questions', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const questionsData = await questionsResponse.json();
+            const questions = questionsData.questions || [];
+            
+            // Create and show modal
+            showResponseDetailsModal(responseData, questions);
+            
+        } catch (error) {
+            console.error('Error fetching response details:', error);
+            showNotification('Failed to load response details. Please try again.', 'error');
+        }
+    }
+
+    // Function to show response details modal
+    function showResponseDetailsModal(responseData, questions) {
+        // Remove existing modal if any
+        const existingModal = document.getElementById('userResponseModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        // Create modal HTML
+        const modalHTML = `
+            <div id="userResponseModal" class="modal-overlay" style="
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 1000;
+            ">
+                <div class="modal-content" style="
+                    background: white;
+                    padding: 2rem;
+                    border-radius: 12px;
+                    max-width: 600px;
+                    width: 90%;
+                    max-height: 80vh;
+                    overflow-y: auto;
+                    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+                ">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        <h2 style="margin: 0; color: #1f2937; font-size: 1.5rem;">
+                            <i class="fas fa-eye" style="color: #667eea; margin-right: 0.5rem;"></i>
+                            Call Response Details
+                        </h2>
+                        <button id="closeUserResponseModal" style="
+                            background: none;
+                            border: none;
+                            font-size: 1.5rem;
+                            cursor: pointer;
+                            color: #6b7280;
+                        ">&times;</button>
+                    </div>
+                    
+                    <div style="margin-bottom: 1.5rem;">
+                        <div style="background: #f8fafc; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-size: 0.9rem;">
+                                <div>
+                                    <strong>Response ID:</strong> ${responseData.id || 'N/A'}
+                                </div>
+                                <div>
+                                    <strong>Call SID:</strong> ${responseData.callSid || 'N/A'}
+                                </div>
+                                <div>
+                                    <strong>Date:</strong> ${new Date(responseData.timestamp).toLocaleString('en-IN')}
+                                </div>
+                                <div>
+                                    <strong>Questions Answered:</strong> ${responseData.answers?.length || 0}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="responseQuestionsList">
+                        ${generateQuestionsHTML(responseData, questions)}
+                    </div>
+                    
+                            
+                        </button>
+                        <button id="closeUserResponseModalBtn" style="
+                            background: #6b7280;
+                            color: white;
+                            border: none;
+                            padding: 0.75rem 1.5rem;
+                            border-radius: 8px;
+                            font-size: 1rem;
+                            font-weight: 600;
+                            cursor: pointer;
+                        ">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Add modal to page
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        
+        // Add event listeners
+        document.getElementById('closeUserResponseModal').addEventListener('click', closeUserResponseModal);
+        document.getElementById('closeUserResponseModalBtn').addEventListener('click', closeUserResponseModal);
+       
+        
+        // Close modal when clicking outside
+        document.getElementById('userResponseModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeUserResponseModal();
+            }
+        });
+    }
+
+    // Function to generate questions HTML
+    function generateQuestionsHTML(responseData, questions) {
+        if (!responseData.answers || responseData.answers.length === 0) {
+            return '<div style="text-align: center; color: #6b7280; padding: 2rem;">No responses recorded for this call.</div>';
+        }
+        
+        let html = '<h3 style="margin: 0 0 1rem 0; color: #1f2937;">Questions & Answers</h3>';
+        
+        responseData.answers.forEach((answer, index) => {
+            const question = questions[index] || `Question ${index + 1}`;
+            const confidence = responseData.confidences && responseData.confidences[index] 
+                ? (responseData.confidences[index] * 100).toFixed(1) 
+                : 'N/A';
+            
+            const confidenceColor = confidence !== 'N/A' 
+                ? (confidence >= 80 ? '#10b981' : confidence >= 60 ? '#f59e0b' : '#ef4444')
+                : '#6b7280';
+            
+            html += `
+                <div style="
+                    background: #f9fafb;
+                    border: 1px solid #e5e7eb;
+                    border-radius: 8px;
+                    padding: 1rem;
+                    margin-bottom: 1rem;
+                ">
+                    <div style="margin-bottom: 0.5rem;">
+                        <strong style="color: #374151;">Q${index + 1}:</strong> ${question}
+                    </div>
+                    <div style="margin-bottom: 0.5rem;">
+                        <strong style="color: #374151;">Answer:</strong> 
+                        <span style="color: #6b7280;">${answer || 'No response recorded'}</span>
+                    </div>
+                    <div>
+                        <strong style="color: #374151;">Confidence:</strong> 
+                        <span style="color: ${confidenceColor}; font-weight: 600;">
+                            ${confidence}${confidence !== 'N/A' ? '%' : ''}
+                        </span>
+                    </div>
+                </div>
+            `;
+        });
+        
+        return html;
+    }
+
+    // Function to close response modal
+    function closeUserResponseModal() {
+        const modal = document.getElementById('userResponseModal');
+        if (modal) {
+            modal.remove();
+        }
+    }
+
+    // Function to download user response details
+    async function downloadUserResponseDetails(responseId) {
+        try {
+            console.log(`📥 Downloading user response details for ${responseId}...`);
+            
+            const response = await fetch(`/api/download-response-report/${responseId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Download failed');
+            }
+            
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `my_response_details_${responseId}_${new Date().toISOString().split('T')[0]}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            
+            console.log('✅ User response details downloaded successfully');
+            showNotification('Response details downloaded successfully!', 'success');
+        } catch (error) {
+            console.error('❌ Error downloading user response details:', error);
+            showNotification('Failed to download response details: ' + error.message, 'error');
+        }
+    }
+
+    // Function to load all responses (placeholder - can be expanded)
+    function loadAllResponses() {
+        showNotification('Loading all responses...', 'info');
+    }
+
+    // Helper to render the questions management UI
+    function renderQuestionsBox(questions) {
+        let html = `<div style='margin-bottom:1rem; display: flex; gap: 0.5rem; align-items: center;'>
+            <button id='addQuestionBtn' style='background: #667eea; color: white; border: none; padding: 0.5rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;'>
+                <i class="fas fa-plus"></i> Add Question
+            </button>
+        </div>`;
+        
+        if (questions.length === 0) {
+            html += `<div style='color: #6b7280; font-style: italic; margin: 1rem 0;'>No questions defined. Add some questions to get started.</div>`;
+        } else {
+            html += `<div id='questionsList'>`;
+            questions.forEach((q, idx) => {
+                html += `<div style='margin-bottom:0.8rem; padding: 0.8rem; border: 1px solid #e5e7eb; border-radius: 8px; background: #f9fafb; display: flex; align-items: center; gap: 0.5rem;'>
+                    <div class='question-display' data-idx='${idx}' style='flex: 1; padding: 0.5rem; border-radius: 6px; background: white; border: 1px solid #e5e7eb; font-size: 0.9rem; min-height: 20px;'>
+                        ${q}
+                    </div>
+                    <input type='text' value="${q}" data-idx='${idx}' class='question-input' style='flex: 1; padding: 0.5rem; border-radius: 6px; border: 1px solid #d1d5db; font-size: 0.9rem; display: none;' placeholder='Enter question text...'>
+                    <button class='editQuestionBtn' data-idx='${idx}' style='background: #3b82f6; color: white; border: none; padding: 0.5rem; border-radius: 6px; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px;' title='Edit Question'>
+                        <i class="fas fa-edit"></i>
+                        </button>
+                    <button class='saveQuestionBtn' data-idx='${idx}' style='background: #10b981; color: white; border: none; padding: 0.5rem; border-radius: 6px; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; display: none;' title='Save Question'>
+                        <i class="fas fa-check"></i>
+                    </button>
+                    <button class='cancelEditBtn' data-idx='${idx}' style='background: #6b7280; color: white; border: none; padding: 0.5rem; border-radius: 6px; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; display: none;' title='Cancel Edit'>
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <button class='deleteQuestionBtn' data-idx='${idx}' style='background: #ef4444; color: white; border: none; padding: 0.5rem; border-radius: 6px; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px;' title='Delete Question'>
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>`;
+            });
+            html += `</div>`;
+        }
+        
+        infoBox.innerHTML = `<div class='info-box-title'><i class='fas fa-question'></i> Manage Questions</div><div class='info-box-content'>${html}</div>`;
+
+        // Add event listeners
+        const addQuestionBtn = document.getElementById('addQuestionBtn');
+        
+        if (addQuestionBtn) {
+            addQuestionBtn.onclick = () => {
+                const updated = [...questions, "New question"];
+                renderQuestionsBox(updated);
+            };
+        }
+        
+        // Edit button functionality
+        document.querySelectorAll('.editQuestionBtn').forEach(btn => {
+            btn.onclick = (e) => {
+                const idx = parseInt(btn.dataset.idx);
+                const questionDiv = btn.closest('div[style*="margin-bottom:0.8rem"]');
+                const displayDiv = questionDiv.querySelector('.question-display');
+                const inputField = questionDiv.querySelector('.question-input');
+                const saveBtn = questionDiv.querySelector('.saveQuestionBtn');
+                const cancelBtn = questionDiv.querySelector('.cancelEditBtn');
+                const editBtn = questionDiv.querySelector('.editQuestionBtn');
+                
+                // Show input field and save/cancel buttons, hide display and edit button
+                displayDiv.style.display = 'none';
+                inputField.style.display = 'block';
+                saveBtn.style.display = 'flex';
+                cancelBtn.style.display = 'flex';
+                editBtn.style.display = 'none';
+                
+                // Focus on input field
+                inputField.focus();
+                inputField.select();
+            };
+        });
+        
+        // Save button functionality
+        document.querySelectorAll('.saveQuestionBtn').forEach(btn => {
+            btn.onclick = async (e) => {
+                const idx = parseInt(btn.dataset.idx);
+                const questionDiv = btn.closest('div[style*="margin-bottom:0.8rem"]');
+                const displayDiv = questionDiv.querySelector('.question-display');
+                const inputField = questionDiv.querySelector('.question-input');
+                const saveBtn = questionDiv.querySelector('.saveQuestionBtn');
+                const cancelBtn = questionDiv.querySelector('.cancelEditBtn');
+                const editBtn = questionDiv.querySelector('.editQuestionBtn');
+                
+                const newValue = inputField.value.trim();
+                if (newValue === '') {
+                    showNotification('Question cannot be empty', 'error');
+                    return;
+                }
+                
+                // Update the questions array
+                const updated = [...questions];
+                updated[idx] = newValue;
+                
+                // Save to backend
+                await updateQuestions(updated);
+                
+                // Update display and hide input
+                displayDiv.textContent = newValue;
+                displayDiv.style.display = 'block';
+                inputField.style.display = 'none';
+                saveBtn.style.display = 'none';
+                cancelBtn.style.display = 'none';
+                editBtn.style.display = 'flex';
+            };
+        });
+        
+        // Cancel button functionality
+        document.querySelectorAll('.cancelEditBtn').forEach(btn => {
+            btn.onclick = (e) => {
+                const idx = parseInt(btn.dataset.idx);
+                const questionDiv = btn.closest('div[style*="margin-bottom:0.8rem"]');
+                const displayDiv = questionDiv.querySelector('.question-display');
+                const inputField = questionDiv.querySelector('.question-input');
+                const saveBtn = questionDiv.querySelector('.saveQuestionBtn');
+                const cancelBtn = questionDiv.querySelector('.cancelEditBtn');
+                const editBtn = questionDiv.querySelector('.editQuestionBtn');
+                
+                // Reset input field to original value
+                inputField.value = questions[idx];
+                
+                // Hide input field and save/cancel buttons, show display and edit button
+                displayDiv.style.display = 'block';
+                inputField.style.display = 'none';
+                saveBtn.style.display = 'none';
+                cancelBtn.style.display = 'none';
+                editBtn.style.display = 'flex';
+            };
+        });
+        
+        document.querySelectorAll('.deleteQuestionBtn').forEach(btn => {
+            btn.onclick = async (e) => {
+                const confirmed = confirm('Are you sure you want to delete this question?');
+                if (confirmed) {
+                    const idx = parseInt(btn.dataset.idx);
+                    const updated = questions.filter((_, i) => i !== idx);
+                    await updateQuestions(updated);
+                }
+            };
+        });
+    }
+
+    // Helper to update questions via backend
+    async function updateQuestions(newQuestions) {
+        try {
+            const response = await fetch('/api/questions', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ questions: newQuestions })
+            });
+            const data = await response.json();
+            if (response.ok && data.success) {
+                renderQuestionsBox(data.questions);
+                showNotification('Questions updated successfully!', 'success');
+            } else {
+                showNotification(data.message || 'Failed to update questions', 'error');
+            }
+        } catch (err) {
+            console.error('Error updating questions:', err);
+            showNotification('Network error. Please try again.', 'error');
+        }
+    }
+
+    // Add event listener for Contact Admin button in navbar
+    const contactAdminBtn = document.getElementById('contactAdminBtn');
+    if (contactAdminBtn) {
+        contactAdminBtn.addEventListener('click', function() {
+            showNotification('admin@example.com | +1 234 567 890', 'info');
+        });
+    }
+
+    // Direct Call button functionality
+    document.getElementById('directCallBtn').addEventListener('click', function() {
+        showDirectCallModal();
+    });
+
+    // Function to show direct call modal
+    function showDirectCallModal() {
+        // Create modal HTML
+        const modalHTML = `
+            <div id="directCallModal" class="modal-overlay" style="
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 1000;
+            ">
+                <div class="modal-content" style="
+                    background: white;
+                    padding: 2rem;
+                    border-radius: 12px;
+                    max-width: 400px;
+                    width: 90%;
+                    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+                ">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        <h2 style="margin: 0; color: #1f2937; font-size: 1.5rem;">
+                            <i class="fas fa-phone" style="color: #10b981; margin-right: 0.5rem;"></i>
+                            Make Direct Call
+                        </h2>
+                        <button id="closeDirectCallModal" style="
+                            background: none;
+                            border: none;
+                            font-size: 1.5rem;
+                            cursor: pointer;
+                            color: #6b7280;
+                        ">&times;</button>
+                    </div>
+                    
+                    <form id="directCallForm">
+                        <div style="margin-bottom: 1rem;">
+                            <label for="directCallName" style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">Name</label>
+                            <input type="text" id="directCallName" required style="
+                                width: 100%;
+                                padding: 0.75rem;
+                                border: 1px solid #d1d5db;
+                                border-radius: 8px;
+                                font-size: 1rem;
+                                box-sizing: border-box;
+                            " placeholder="Enter name">
+                        </div>
+                        
+                        <div style="margin-bottom: 1.5rem;">
+                            <label for="directCallPhone" style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">Phone Number</label>
+                            <input type="tel" id="directCallPhone" required style="
+                                width: 100%;
+                                padding: 0.75rem;
+                                border: 1px solid #d1d5db;
+                                border-radius: 8px;
+                                font-size: 1rem;
+                                box-sizing: border-box;
+                            " placeholder="+1234567890" pattern="[0-9\\-\\+\\s\\(\\)]{7,}">
+                            <small style="color: #6b7280; font-size: 0.875rem;">Include country code (e.g., +1 for US)</small>
+                        </div>
+                        
+                        <div style="display: flex; gap: 1rem;">
+                            <button type="submit" style="
+                                flex: 1;
+                                background: #10b981;
+                                color: white;
+                                border: none;
+                                padding: 0.75rem;
+                                border-radius: 8px;
+                                font-size: 1rem;
+                                font-weight: 600;
+                                cursor: pointer;
+                            ">
+                                <i class="fas fa-phone" style="margin-right: 0.5rem;"></i>
+                                Make Call
+                            </button>
+                            <button type="button" id="cancelDirectCall" style="
+                                flex: 1;
+                                background: #6b7280;
+                                color: white;
+                                border: none;
+                                padding: 0.75rem;
+                                border-radius: 8px;
+                                font-size: 1rem;
+                                font-weight: 600;
+                                cursor: pointer;
+                            ">
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+        
+        // Add modal to page
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        
+        // Add event listeners
+        document.getElementById('closeDirectCallModal').addEventListener('click', closeDirectCallModal);
+        document.getElementById('cancelDirectCall').addEventListener('click', closeDirectCallModal);
+        document.getElementById('directCallForm').addEventListener('submit', handleDirectCall);
+        
+        // Close modal when clicking outside
+        document.getElementById('directCallModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeDirectCallModal();
+            }
+        });
+    }
+    
+    // Function to close direct call modal
+    function closeDirectCallModal() {
+        const modal = document.getElementById('directCallModal');
+        if (modal) {
+            modal.remove();
+        }
+    }
+    
+    // Function to handle direct call submission
+    async function handleDirectCall(e) {
+        e.preventDefault();
+        
+        const name = document.getElementById('directCallName').value.trim();
+        const phone = document.getElementById('directCallPhone').value.trim();
+        
+        if (!name || !phone) {
+            showNotification('Please fill in all fields', 'error');
+            return;
+        }
+        
+        try {
+            // Create a call record for immediate execution
+            const response = await fetch('/api/direct-call', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ name, phone })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                showNotification('Call initiated successfully!', 'success');
+                closeDirectCallModal();
+            } else {
+                showNotification(data.message || 'Failed to make call', 'error');
+            }
+        } catch (err) {
+            showNotification('Network error. Please try again.', 'error');
+        }
+    }
+
+    // Function to delete a user's call
+    window.deleteUserCall = async function(callId) {
+        try {
+            const confirmed = confirm('Are you sure you want to delete this call? This action cannot be undone.');
+            if (!confirmed) {
+                return;
+            }
+            
+            const response = await fetch(`/api/user-calls/${callId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                let message = 'Call deleted successfully!';
+                
+                // Handle credit refund if applicable
+                if (data.refundedCredits && data.refundedCredits > 0) {
+                    message = `Call deleted successfully! ${data.refundedCredits} credit refunded. Remaining credits: ${data.remainingCredits}`;
+                    
+                    // Update the user's credit display
+                    if (data.remainingCredits !== undefined) {
+                        updateCreditsDisplay(data.remainingCredits);
+                        
+                        // Update the stored user data
+                        const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+                        currentUser.credits = data.remainingCredits;
+                        localStorage.setItem('user', JSON.stringify(currentUser));
+                    }
+                }
+                
+                showNotification(message, 'success');
+                // Refresh the scheduled calls list
+                statCards[1].click();
+            } else {
+                showNotification(data.message || 'Failed to delete call', 'error');
+            }
+        } catch (err) {
+            showNotification('Network error. Please try again.', 'error');
+        }
+    };
+
+    // Function to cancel a user's call
+    window.cancelUserCall = async function(callId) {
+        try {
+            const confirmed = confirm('Are you sure you want to cancel this call? This action cannot be undone.');
+            if (!confirmed) {
+                return;
+            }
+            
+            const response = await fetch(`/api/scheduler/cancel/${callId}`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                let message = 'Call cancelled successfully!';
+                
+                // Handle credit refund if applicable
+                if (data.refundedCredits && data.refundedCredits > 0) {
+                    message = `Call cancelled successfully! ${data.refundedCredits} credit refunded. Remaining credits: ${data.remainingCredits}`;
+                    
+                    // Update the user's credit display
+                    if (data.remainingCredits !== undefined) {
+                        updateCreditsDisplay(data.remainingCredits);
+                        
+                        // Update the stored user data
+                        const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+                        currentUser.credits = data.remainingCredits;
+                        localStorage.setItem('user', JSON.stringify(currentUser));
+                    }
+                }
+                
+                showNotification(message, 'success');
+                // Refresh the scheduled calls list
+                statCards[1].click();
+            } else {
+                showNotification(data.message || 'Failed to cancel call', 'error');
+            }
+        } catch (err) {
+            showNotification('Network error. Please try again.', 'error');
+        }
+    };
+
+    function downloadResponse(name, time, questions, answers) {
+        let content = `Name: ${name}\nTime: ${time}\n\n`;
+        for (let i = 0; i < answers.length; i++) {
+            const q = questions[i] ? questions[i] : `Question ${i+1}`;
+            content += `Q${i+1}: ${q}\nA${i+1}: ${answers[i]}\n\n`;
+        }
+        const blob = new Blob([content], { type: "text/plain" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `${name}.txt`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    // Company name edit logic
+    const editBtn = document.getElementById('editCompanyBtn');
+    const displayDiv = document.getElementById('companyNameDisplay');
+    const editDiv = document.getElementById('companyNameEdit');
+    const input = document.getElementById('companyNameInput');
+    const saveBtn = document.getElementById('saveCompanyBtn');
+    const cancelBtn = document.getElementById('cancelCompanyBtn');
+
+    // Load company name from localStorage if available
+    const storedCompanyName = localStorage.getItem('companyName');
+    if (storedCompanyName) {
+        displayDiv.textContent = storedCompanyName;
+        input.value = storedCompanyName;
+    }
+
+    if (editBtn && displayDiv && editDiv && input && saveBtn && cancelBtn) {
+        editBtn.addEventListener('click', () => {
+            displayDiv.style.display = 'none';
+            editDiv.style.display = 'block';
+            input.value = displayDiv.textContent;
+            input.focus();
+        });
+        saveBtn.addEventListener('click', () => {
+            const newName = input.value.trim();
+            if (newName) {
+                displayDiv.textContent = newName;
+                localStorage.setItem('companyName', newName);
+            }
+            displayDiv.style.display = 'block';
+            editDiv.style.display = 'none';
+        });
+        cancelBtn.addEventListener('click', () => {
+            editDiv.style.display = 'none';
+            displayDiv.style.display = 'block';
+        });
+    }
+}); 
