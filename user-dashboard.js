@@ -8,6 +8,24 @@ document.addEventListener('DOMContentLoaded', function() {
         window.location.href = '/';
         return;
     }
+    document.getElementById('saveCompanyBtn').addEventListener('click', async () => {
+    const companyName = document.getElementById('companyNameInput').value.trim();
+    if (companyName) {
+        // Save locally
+        document.getElementById('companyNameDisplay').textContent = companyName;
+
+        // Save to backend
+        try {
+            await fetch('/api/company-name', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ companyName })
+            });
+        } catch (err) {
+            console.error('Failed to save company name to server', err);
+        }
+    }
+});
 
     // Update user information in the dashboard
     document.getElementById('userName').textContent = user.name || 'User';
