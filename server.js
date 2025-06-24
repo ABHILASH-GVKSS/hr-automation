@@ -731,7 +731,7 @@ class CallScheduler {
             }
             
             // Use webhook URL approach instead of inline TwiML
-            const publicUrl = process.env.PUBLIC_URL || 'https://abhi-np5f.onrender.com';
+            const publicUrl = process.env.PUBLIC_URL || 'https://hr-automation-34xu.onrender.com';
             const twimlUrl = `${publicUrl}/twiml/ask`;
             const statusCallbackUrl = `${publicUrl}/call-status`;
             console.log(`Using TwiML webhook URL: ${twimlUrl}`);
@@ -1190,7 +1190,7 @@ app.post('/api/direct-call', authenticateToken, async (req, res) => {
     }
     
     try {
-        const publicUrl = process.env.PUBLIC_URL || 'https://abhi-np5f.onrender.com';
+        const publicUrl = process.env.PUBLIC_URL || 'https://hr-automation-34xu.onrender.com';
         const twimlUrl = `${publicUrl}/twiml/ask`;
         const statusCallbackUrl = `${publicUrl}/call-status`;
         console.log(`Making direct call to ${name} (${phone}) at ${twimlUrl}`);
@@ -1266,7 +1266,7 @@ app.post('/api/trigger-call/:callId', authenticateToken, async (req, res) => {
     }
     
     try {
-        const publicUrl = process.env.PUBLIC_URL || 'https://abhi-np5f.onrender.com';
+        const publicUrl = process.env.PUBLIC_URL || 'https://hr-automation-34xu.onrender.com';
         const twimlUrl = `${publicUrl}/twiml/ask`;
         const statusCallbackUrl = `${publicUrl}/call-status`;
         console.log(`Manually triggering call to ${call.name} (${call.phone}) at ${twimlUrl}`);
