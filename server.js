@@ -12,7 +12,10 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-const COMPANY_NAME = 'Demo Company'; // Set your static company name here
+function getCompanyName() {
+    const settings = loadSettings();
+    return settings.companyName || 'Demo Company';
+}
 
 // Middleware
 app.use(cors());
