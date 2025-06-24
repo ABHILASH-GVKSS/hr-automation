@@ -177,6 +177,21 @@ function saveTranscripts(transcripts) {
 }
 
 // Routes
+
+app.get('/api/company-name', (req, res) => {
+    const settings = loadSettings();
+    res.json({ companyName: settings.companyName });
+});
+
+app.post('/api/company-name', (req, res) => {
+    const { companyName } = req.body;
+    if (!companyName || typeof companyName !== 'string') {
+        return res.status(400).json({ success: false, message: 'Invalid company name' });
+    }
+    const settings = { companyName };
+    const success = saveSettings(settings);
+    res.json({ success, companyName });
+});
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
@@ -2445,3 +2460,29 @@ app.post('/api/users', authenticateToken, (req, res) => {
         }
     });
 }); 
+
+
+const settingsFile = path.join(__dirname, 'settings.json');
+
+function loadSettings() {
+    try {
+        if (!fs.existsSync(settingsFile)) {
+            fs.writeFileSync(settingsFile, JSON.stringify({ companyName: 'Demo Company' }, null, 2));
+        }
+        const data = fs.readFileSync(settingsFile, 'utf8');
+        return JSON.parse(data);
+    } catch {
+        return { companyName: 'Demo Company' };
+    }
+}
+
+function saveSettings(settings) {
+    try {
+        fs.writeFileSync(settingsFile, JSON.stringify(settings, null, 2));
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+
